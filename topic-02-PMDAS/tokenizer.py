@@ -2,7 +2,7 @@ import re #regular expression library
 
 #Define patterns for tokens
 patterns = [
-    [r"\d+", "number"], #\d = digit, + means one or more
+    [r"\d+(.d*)", "number"], #\d = digit, + means one or more, * means 0 or more
     [r"\+", "+"],
     [r"\-", "-"],
     [r"\*", "*"],
@@ -59,6 +59,11 @@ def test_simple_token():
 def test_number_token():
     print("test number token")
     for s in ["1", "11"]:
+        t = tokenize(s)
+    assert len(t) == 2
+    assert t[0]["tag"] == "number"
+    assert t[0]["value"] == int(s)
+    for s in ["1.11", "11.23", "11.", "0.696969"]:
         t = tokenize(s)
     assert len(t) == 2
     assert t[0]["tag"] == "number"
