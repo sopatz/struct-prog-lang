@@ -114,6 +114,10 @@ def test_parse_expression():
     ast, tokens = parse_expression(tokens)
     assert ast == {'tag': '+', 'left': {'tag': 'number', 'value': 1}, 'right': {'tag': '*', 'left': {'tag': '+', 'left': {'tag': 'number', 'value': 2}, 'right': {'tag': 'number', 'value': 3}}, 'right': {'tag': 'number', 'value': 4}}}
 
+def parse(tokens):
+    ast, tokens =  parse_expression(tokens)
+    return ast
+
 if __name__ == "__main__":
     test_parse_factor()
     test_parse_term()
