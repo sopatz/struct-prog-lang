@@ -1,7 +1,16 @@
 from tokenizer import tokenize
 from parser import parse
 
+printed_string = None
+
 def evaluate(ast):
+    global printed_string
+    if ast["tag"] == "print":
+        value = evaluate(ast["value"])
+        s = str(value)
+        print(s)
+        printed_string = s
+        return None #statement does not return a value, an expression does
     if ast["tag"] == "number":
         return ast["value"]
     if ast["tag"] in ["+", "-", "*", "/"]:
@@ -41,6 +50,7 @@ def test_evaluate_divide():
     ast = {"tag":"/","left":{"tag":"number", "value":8}, "right":{"tag":"number","value":2}}
     assert evaluate(ast) == 4
 
+
 def eval(s):
     tokens = tokenize(s)
     ast = parse(tokens)
@@ -56,6 +66,14 @@ def test_evaluate_expression():
     assert eval("1+2+4") == 7
     assert eval("1+2*4") == 9
     assert eval("(1+2)*4") == 12
+    assert eval("(1.0+2.1)*3") == 9.3
+
+def test_evaluate_print_statement():
+    print("testing print statement")
+    assert eval("print 16") == None
+    assert printed_string == "16"
+    assert eval("print 3.14159") == None
+    assert printed_string == "3.14159"
 
 if __name__ == "__main__":
     test_evaluate_number()
@@ -64,4 +82,5 @@ if __name__ == "__main__":
     test_evaluate_multiply()
     test_evaluate_divide()
     test_evaluate_expression()
+    test_evaluate_print_statement()
     print("Done testing evaluator.")

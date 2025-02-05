@@ -2,7 +2,9 @@ import re #regular expression library
 
 #Define patterns for tokens
 patterns = [
-    [r"\d+(.d*)", "number"], #\d = digit, + means one or more, * means 0 or more
+    [r"print", "print"],
+    [r"\d*\.\d+|\d+\.\d*|\d+", "number"], #\d = digit, + means one or more, * means 0 or more
+    [r"[a-zA-Z_][a-zA-Z0-9_]*", "identifier"], #identifiers
     [r"\+", "+"],
     [r"\-", "-"],
     [r"\*", "*"],
@@ -30,20 +32,23 @@ def tokenize(characters):
             raise Exception("Syntax error")
         
         token = {
-            "tag": tag,
-            "position": position,
-            "value": match.group(0) #contents of first group that matches this regular expression
+            "tag":tag,
+            "position":position,
+            "value":match.group(0) #contents of first group that matches this regular expression
         }
         if token["tag"] == "number":
-            token["value"] = int(token["value"])
+            if "." in token["value"]:
+                token["value"] = float(token["value"])
+            else:
+                token["value"] = int(token["value"])
         if token["tag"] != "whitespace":
             tokens.append(token)
         position = match.end() #get next position
     #append end-of-stream marker
     tokens.append({
         "tag": None,
+        "value": None,
         "position": position,
-        "value": None
     })
     return tokens
 
@@ -63,11 +68,11 @@ def test_number_token():
     assert len(t) == 2
     assert t[0]["tag"] == "number"
     assert t[0]["value"] == int(s)
-    for s in ["1.11", "11.23", "11.", "0.696969"]:
+    for s in ["1.11", "11.23", "11.", ".696969"]:
         t = tokenize(s)
-    assert len(t) == 2
-    assert t[0]["tag"] == "number"
-    assert t[0]["value"] == int(s)
+        assert len(t) == 2
+        assert t[0]["tag"] == "number"
+        assert t[0]["value"] == float(s)
 
 def test_multiple_tokens():
     print("test multiple tokens")
@@ -80,6 +85,24 @@ def test_whitespace():
     tokens = tokenize("1 + 2")
     assert tokens == [{'tag': 'number', 'position': 0, 'value': 1}, {'tag': '+', 'position': 2, 'value': '+'}, {'tag': 'number', 'position': 4, 'value': 2}, {'tag': None, 'position': 5, 'value': None}]
 
+def test_keywords():
+    print("test keywords")
+    for keyword in [
+        "print"
+    ]:
+        t = tokenize(keyword)
+        assert len(t) == 2
+        assert t[0]["tag"] == keyword, f"expected {keyword}, got {t[0]}"
+        assert t[0]["value"] == keyword
+
+def test_identifier_tokens():
+    print("test identifier tokens")
+    for s in ["x", "y", "z", "alpha", "beta", "gamma"]:
+        t = tokenize(s)
+        assert len(t) == 2
+        assert t[0]["tag"] == "identifier"
+        assert t[0]["value"] == s
+
 def test_error():
     print("test error")
     try:
@@ -89,10 +112,11 @@ def test_error():
         assert "Syntax error" in str(e), f"Unexpected exception: {e}"
 
 
-
 if __name__ == "__main__":
     test_simple_token()
     test_number_token()
     test_multiple_tokens()
     test_whitespace()
+    test_keywords()
+    test_identifier_tokens()
     test_error()
