@@ -1,3 +1,5 @@
+# Splits code into tokens (gives each character a tag, value, and position)
+
 import re #regular expression library
 
 #Define patterns for tokens

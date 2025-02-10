@@ -1,3 +1,6 @@
+# Builds abstract syntax trees of tokens using nested Python dictionaries 
+# (this is a "recursive descent parser")
+
 from tokenizer import tokenize
 
 """
@@ -22,6 +25,11 @@ def parse_factor(tokens):
             "tag":"number",
             "value":token['value']
         }, tokens[1:]
+    if token["tag"] == "identifier":
+        return {
+            "tag":"identifier",
+            "value":token['value']
+        }, tokens[1:]
     if token["tag"] == "(":
         ast, tokens = parse_expression(tokens[1:])
         assert tokens[0]["tag"] == ")"
@@ -44,8 +52,12 @@ def test_parse_factor():
     tokens = tokenize("(2+3)")
     ast, tokens = parse_factor(tokens)
     assert ast == {'tag': '+', 'left': {'tag': 'number', 'value': 2}, 'right': {'tag': 'number', 'value': 3}}
-    #print(ast)
-    #print(tokens)
+    tokens = tokenize("x")
+    ast, tokens = parse_factor(tokens)
+    assert ast == {'tag': 'identifier', 'value': 'x'}
+    tokens = tokenize("(x+3)")
+    ast, tokens = parse_factor(tokens)
+    assert ast == {'tag': '+', 'left': {'tag': 'identifier', 'value': 'x'}, 'right': {'tag': 'number', 'value': 3}}
 
 def parse_term(tokens):
     """

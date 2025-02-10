@@ -1,9 +1,11 @@
+# "Resolves" the value of each token
+
 from tokenizer import tokenize
 from parser import parse
 
 printed_string = None
 
-def evaluate(ast):
+def evaluate(ast, environment={}): #environment is optional
     global printed_string
     if ast["tag"] == "print":
         value = evaluate(ast["value"])
@@ -13,6 +15,11 @@ def evaluate(ast):
         return None #statement does not return a value, an expression does
     if ast["tag"] == "number":
         return ast["value"]
+    if ast["tag"] == "identifier":
+        if ast["value"] in environment:
+            return environment[ast["value"]]
+        else:
+            raise Exception(f"Value {ast["value"]} not found in environment.")
     if ast["tag"] in ["+", "-", "*", "/"]:
         #each binary operator has a left and right value as sub-trees to evaluate
         left_value = evaluate(ast["left"])
@@ -75,6 +82,10 @@ def test_evaluate_print_statement():
     assert eval("print 3.14159") == None
     assert printed_string == "3.14159"
 
+def test_evaluate_identifier():
+    print("testing evaluate identifier")
+    assert eval("x+3") == 6 #will fail for now
+
 if __name__ == "__main__":
     test_evaluate_number()
     test_evaluate_add()
@@ -83,4 +94,5 @@ if __name__ == "__main__":
     test_evaluate_divide()
     test_evaluate_expression()
     test_evaluate_print_statement()
+    test_evaluate_identifier()
     print("Done testing evaluator.")
