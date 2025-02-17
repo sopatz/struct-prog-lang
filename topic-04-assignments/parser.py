@@ -191,7 +191,7 @@ def test_parse_program():
     """
     print("Testing parse program...")
     ast, tokens = parse_program(tokenize("x=1; y=2"))
-    
+
 
 def parse(tokens):
     ast, tokens =  parse_program(tokens)
@@ -204,4 +204,5 @@ if __name__ == "__main__":
     test_parse_statement()
     test_parse_assignment_statement()
     test_parse_program()
+    #FIX PARSE PROGRAM AND TEST PARSE PROGRAM
     print("Done testing.")
