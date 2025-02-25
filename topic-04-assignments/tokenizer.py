@@ -13,11 +13,20 @@ patterns = [
     [r"\/", "/"],
     [r"\(", "("],
     [r"\)", ")"],
+    [r"\)", ")"],
     [r"==", "=="],
+    [r"!=", "!="],
+    [r"<=", "<="],
+    [r">=", ">="],
+    [r"<", "<"],
+    [r">", ">"],
     [r"\=", "="],
     [r"\;", ";"],
-    [r"\s+", "whitespace"],
-    [r".", "error"]
+    [r"\&\&", "&&"],
+    [r"\|\|", "||"],
+    [r"\!", "!"],
+    [r"\s+","whitespace"],
+    [r".","error"]
 ]
 
 for pattern in patterns:
@@ -59,12 +68,18 @@ def tokenize(characters):
 
 def test_simple_token():
     print("Testing simple token...")
-    examples = "+-*/()=;"
+    examples = "+-*/()=;<>"
     for example in examples:
         t = tokenize(example)[0]
         assert t["tag"] == example #what type of token is it?
         assert t["position"] == 0 #where the token was found (first position in this case)
         assert t["value"] == example #contents of the token
+    examples = "==\t!=\t<=\t>=\t&&\t||\t!".split("\t")
+    for example in examples:
+        t = tokenize(example)[0]
+        assert t["tag"] == example
+        assert t["position"] == 0
+        assert t["value"] == example
 
 def test_number_token():
     print("Testing number token...")

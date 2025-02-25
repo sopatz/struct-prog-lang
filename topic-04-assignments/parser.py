@@ -11,7 +11,12 @@ Accept a string of tokens, return an AST expressed as stack of dictionaries
 """
     factor = <number> | <identifier> | "(" expression ")"
     term = factor { "*"|"/" factor }
-    expression = term { "+"|"-" term }
+    arithmetic_expression = term { "+"|"-" term }
+    relational_expression = arithmetic_expression { ("<" | ">" | "<=" | ">=" | "==" | "!=") arithmetic_expression } ;
+    # logical_factor = relational_expression ;
+    # logical_term = logical_factor { "&&" logical_factor } ;
+    # logical_expression = logical_term { "||" logical_term } ;
+    # expression = logical_expression; 
     assignment_statement = expression [ "=" expression ]
     statement = <print> expression | assignment_statement
     program = [ statement { ";" statement } ]
@@ -183,7 +188,10 @@ def parse_program(tokens):
             tokens = tokens[1:]
             statement, tokens = parse_statement(tokens)
             statements.append(statement)
-    assert(tokens[0]["tag"] == 1)
+    assert (
+        tokens[0]["tag"] == None
+    ), f"Expected end of input at position {tokens[0]['position']}, got [{tokens[0]}]"
+    return {"tag": "program", "statements": statements}, tokens[1:]
 
 def test_parse_program():
     """
@@ -191,10 +199,19 @@ def test_parse_program():
     """
     print("Testing parse program...")
     ast, tokens = parse_program(tokenize("x=1; y=2"))
+    assert ast == {'tag': 'program', 'statements': [{'tag': 'assign', 'target': {'tag': 'identifier', 'value': 'x'}, 'value': {'tag': 'number', 'value': 1}}, {'tag': 'assign', 'target': {'tag': 'identifier', 'value': 'y'}, 'value': {'tag': 'number', 'value': 2}}]}
+    ast, tokens = parse_program(tokenize("print 1; print 2"))
+    assert ast == {
+        "tag": "program",
+        "statements": [
+            {"tag": "print", "value": {"tag": "number", "value": 1}},
+            {"tag": "print", "value": {"tag": "number", "value": 2}},
+        ],
+    }
 
 
 def parse(tokens):
-    ast, tokens =  parse_program(tokens)
+    ast, tokens = parse_program(tokens)
     return ast
 
 if __name__ == "__main__":
@@ -204,5 +221,4 @@ if __name__ == "__main__":
     test_parse_statement()
     test_parse_assignment_statement()
     test_parse_program()
-    #FIX PARSE PROGRAM AND TEST PARSE PROGRAM
     print("Done testing.")
