@@ -14,11 +14,23 @@ def evaluate(ast, environment={}): #environment is optional
             last_value = value
         return last_value
     if ast["tag"] == "print":
-        value = evaluate(ast["value"])
+        value = evaluate(ast["value"], environment)
         s = str(value)
         print(s)
         printed_string = s
         return None #statement does not return a value, an expression does
+    if ast["tag"] == "if":
+        condition_value = evaluate(ast["condition"], environment)
+        if condition_value:
+            evaluate(ast["then"], environment) #evaluate then statement if condition is true
+        else:
+            if ast["else"]: #ast["else"] != None
+                evaluate(ast["else"], environment)
+        return None
+    if ast["tag"] == "while":
+        while evaluate(ast["condition"], environment):
+            evaluate(ast["do"], environment) #evaluate then statement if condition is true
+        return None
     if ast["tag"] == "assign":
         target = ast["target"]
         assert target["tag"] == "identifier"
@@ -26,6 +38,7 @@ def evaluate(ast, environment={}): #environment is optional
         assert type(identifier) is str
         value = evaluate(ast["value"], environment)
         environment[identifier] = value
+        return value
     if ast["tag"] == "number":
         return ast["value"]
     if ast["tag"] == "identifier":
@@ -173,8 +186,17 @@ def test_evaluate_identifier():
 def test_evaluate_assignment():
     print("Testing evaluate assignment...")
     env = {'x':14, 'y':5}
-    assert eval("x=7", env) == 9
+    assert eval("x=7", env) == 7
     assert env["x"] == 7
+
+def test_if_statement():
+    print("Testing evaluate if statement...")
+    env = {'x':4, 'y':5}
+    assert eval("if(1){x=8}", env) == None
+    assert env["x"] == 8
+    # assert eval("if(1){x=8}else{y=9}", env) == None
+    # assert env["x"] == 8
+    # assert env["y"] == 9
 
 if __name__ == "__main__":
     test_evaluate_number()
@@ -185,4 +207,6 @@ if __name__ == "__main__":
     test_evaluate_expression()
     test_evaluate_print_statement()
     test_evaluate_identifier()
+    test_evaluate_assignment()
+    test_if_statement()
     print("Done testing evaluator.")
