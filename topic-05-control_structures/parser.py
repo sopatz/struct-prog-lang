@@ -82,6 +82,10 @@ def test_parse_factor():
     tokens = tokenize("!2")
     ast, tokens = parse_factor(tokens)
     assert ast == {'tag': '!', 'value': {'tag': 'number', 'value': 2}}
+    ast, _ = parse_factor(tokenize("-x"))
+    assert ast == {'tag': 'negate', 'value': {'tag': 'identifier', 'value': 'x'}}
+    ast, _ = parse_factor(tokenize("-(z/5)"))
+    assert ast == {'tag': 'negate', 'value': {'tag': '/', 'left': {'tag': 'identifier', 'value': 'z'}, 'right': {'tag': 'number', 'value': 5}}}
 
 def parse_term(tokens):
     """
@@ -112,6 +116,12 @@ def test_parse_term():
     tokens = tokenize("2*4/6")
     ast, tokens = parse_term(tokens)
     assert ast == {'tag': '/', 'left': {'tag': '*', 'left': {'tag': 'number', 'value': 2}, 'right': {'tag': 'number', 'value': 4}}, 'right': {'tag': 'number', 'value': 6}}
+    ast, _ = parse_term(tokenize("10/x/5"))
+    assert ast == {'tag': '/', 'left': {'tag': '/', 'left': {'tag': 'number', 'value': 10}, 'right': {'tag': 'identifier', 'value': 'x'}}, 'right': {'tag': 'number', 'value': 5}}
+    ast, _ = parse_term(tokenize("10/(x/5)"))
+    assert ast == {'tag': '/', 'left': {'tag': 'number', 'value': 10}, 'right': {'tag': '/', 'left': {'tag': 'identifier', 'value': 'x'}, 'right': {'tag': 'number', 'value': 5}}}
+    ast, _ = parse_term(tokenize("(-z)/5"))
+    assert ast == {'tag': '/', 'left': {'tag': 'negate', 'value': {'tag': 'identifier', 'value': 'z'}}, 'right': {'tag': 'number', 'value': 5}}
 
 def parse_arithmetic_expression(tokens):
     """
