@@ -12,7 +12,7 @@ EBNF (Extended Backus–Naur Form): Unordered list of rules used to make a forma
 
 Accept a string of tokens, return an AST expressed as stack of dictionaries
 """
-"""
+grammar = """
     factor = <number> | <identifier> | "(" expression ")" | "!" expression | "-" expression
     term = factor { "*"|"/" factor }
     arithmetic_expression = term { "+"|"-" term }
@@ -23,7 +23,10 @@ Accept a string of tokens, return an AST expressed as stack of dictionaries
     expression = logical_expression; 
     assignment_statement = expression [ "=" expression ]
     statement_block = "{" + statement { ";" statement } + "}"
-    statement = <print> statement_block | if_statement | while_statement | function_statement | return_statement | print_statement | assignment_statement
+    print_statement = "print" [ expression ] ;
+    if_statement = "if" "(" expression ")" statement_block [ "else" statement_block ]
+    while_statement = "while" "(" expression ")" statement_block
+    statement = if_statement | while_statement | function_statement | return_statement | print_statement | assignment_statement ;
     program = [ statement { ";" statement } ]
 """
 
@@ -195,6 +198,9 @@ def parse_relational_expression(tokens):
     return node, tokens
 
 def test_parse_relational_expression():
+    """
+    relational_expression = arithmetic_expression { ("<" | ">" | "<=" | ">=" | "==" | "!=") arithmetic_expression } ;
+    """
     print("Testing parse relational expression...")
     for operator in ["<" , ">" , "<=" , ">=" , "==" , "!="]:
         tokens = tokenize(f"2{operator}4")
@@ -311,13 +317,13 @@ def test_parse_logical_expression():
 
 def parse_expression(tokens):
     """
-    expression = logical_expression ;
+    expression = logical_expression;
     """
     return parse_logical_expression(tokens)
 
 def test_parse_expression():
     """
-    expression = logical_expression ;
+    expression = logical_expression;
     """
     print("testing parse_expression...")
     for s in ["1", "1+1", "1 && 1", "1 < 2"]:
@@ -469,8 +475,7 @@ def test_parse_assignment_statement():
 
 def parse_statement(tokens):
     """
-    statement = statement_block | if_statement | while_statement | function_statement | 
-                return_statement | print_statement | assignment_statement
+    statement = if_statement | while_statement | function_statement | return_statement | print_statement | assignment_statement ;
     """
     tag = tokens[0]["tag"] # get tag of first token (should be the keyword for the statement)
     # note: none of these consumes a token
@@ -568,18 +573,59 @@ def parse(tokens):
     ast, tokens = parse_program(tokens)
     return ast
 
+normalized_grammar = "\n".join([line.strip() for line in grammar.splitlines() if line.strip()])
+
 if __name__ == "__main__":
-    test_parse_factor()
-    test_parse_term()
-    test_parse_arithmetic_expression()
-    test_parse_relational_expression()
-    test_parse_logical_factor()
-    test_parse_logical_term()
-    test_parse_logical_expression()
-    test_parse_statement_block()
-    test_parse_if_statement()
-    test_parse_while_statement()
-    test_parse_assignment_statement()
-    test_parse_statement()
-    test_parse_program()
+    test_functions = [
+        test_parse_factor,
+        test_parse_term,
+        test_parse_arithmetic_expression,
+        test_parse_relational_expression,
+        test_parse_logical_factor,
+        test_parse_logical_term,
+        test_parse_logical_expression,
+        test_parse_expression,
+        test_parse_statement_block,
+        test_parse_print_statement,
+        test_parse_if_statement,
+        test_parse_while_statement,
+        test_parse_assignment_statement,
+        test_parse_statement,
+        test_parse_program,
+    ]
+
+    untested_grammar = normalized_grammar
+
+    # For each test function, verify that:
+    # 1. Its docstring rule appears in the normalized grammar.
+    # 2. The corresponding parsing function shares the same docstring rule.
+    for test_func in test_functions:
+        test_rule = test_func.__doc__.strip().splitlines()[0].strip()
+        # print("Testing rule from test:", test_rule)
+        if test_rule not in untested_grammar:
+            raise Exception(f"Rule [{test_rule}] not found in grammar.")
+        untested_grammar = untested_grammar.replace(test_rule, "").strip()
+
+        # Determine the corresponding parsing function name (drop the "test_" prefix).
+        parsing_func_name = test_func.__name__[5:]
+        if parsing_func_name not in globals():
+            raise Exception(f"Parsing function {parsing_func_name} not found for test {test_func.__name__}")
+        parsing_func = globals()[parsing_func_name]
+        if not parsing_func.__doc__:
+            raise Exception(f"Parsing function {parsing_func_name} has no docstring.")
+        func_rule = parsing_func.__doc__.strip().splitlines()[0].strip()
+        if test_rule != func_rule:
+            raise Exception(
+                f"Mismatch in docstring rules for {parsing_func_name}: "
+                f"test rule is [{test_rule}] but function rule is [{func_rule}]."
+            )
+        # Run the test function.
+        test_func()
+
+    if untested_grammar.strip():
+        print("Untested grammar rules:")
+        print(untested_grammar)
+    else:
+        print("All grammar rules are covered.")
+
     print("Done Testing.")
