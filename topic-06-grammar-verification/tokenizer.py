@@ -12,6 +12,7 @@ patterns = [
     [r"break", "break"],
     [r"return", "return"],
     [r"assert", "assert"],
+    [r"sopatz", "sopatz"],
     [r"\d*\.\d+|\d+\.\d*|\d+", "number"], #\d = digit, + means one or more, * means 0 or more
     [r"[a-zA-Z_][a-zA-Z0-9_]*", "identifier"], #identifiers (all keywords must be above the identifiers here)
     [r"\+", "+"],

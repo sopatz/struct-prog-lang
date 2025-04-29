@@ -485,6 +485,8 @@ def parse_statement(tokens):
         return parse_if_statement(tokens)
     if tag == "while":
         return parse_while_statement(tokens)
+    if tag == "sopatz":
+        return parse_sopatz_statement(tokens)
     # if tag == "function":
     #     return parse_function_statement(tokens)
     # if tag == "return":
@@ -492,6 +494,11 @@ def parse_statement(tokens):
     if tag == "print":
         return parse_print_statement(tokens)
     return parse_assignment_statement(tokens)
+
+def parse_sopatz_statement(tokens):
+    assert tokens[0]["tag"] == "sopatz"
+    tokens = tokens[1:] #consumue "sopatz" token
+    return { "tag": "sopatz" }, tokens
 
 
 def test_parse_statement():

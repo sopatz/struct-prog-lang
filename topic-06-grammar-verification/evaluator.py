@@ -34,6 +34,9 @@ def evaluate(ast, environment={}): #environment is optional
         while evaluate(ast["condition"], environment):
             evaluate(ast["do"], environment) #evaluate then statement if condition is true
         return None
+    if ast["tag"] == "sopatz":
+        environment["_kentid_"] = "sopatz@kent.edu" #insert and set environment variable
+        return None
     if ast["tag"] == "assign":
         target = ast["target"]
         assert target["tag"] == "identifier"
