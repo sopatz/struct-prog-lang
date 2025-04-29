@@ -26,6 +26,7 @@ grammar = """
     print_statement = "print" [ expression ] ;
     if_statement = "if" "(" expression ")" statement_block [ "else" statement_block ]
     while_statement = "while" "(" expression ")" statement_block
+    do_while_statement = "do" statement_block "while" "(" expression ")" ;
     statement = if_statement | while_statement | function_statement | return_statement | print_statement | assignment_statement ;
     program = [ statement { ";" statement } ]
 """
@@ -35,16 +36,26 @@ def parse_factor(tokens):
     factor = <number> | <identifier> | "(" expression ")" | "!" expression | "-" expression
     """
     token = tokens[0]
+
+    # FUNCTION CALL PARSING: e.g., pow(2, 3)
+    if token["tag"] == "identifier" and tokens[1]["tag"] == "(":
+        func_name = token["value"]
+        tokens = tokens[2:]  # Skip identifier and '('
+        args = []
+        if tokens[0]["tag"] != ")":
+            arg, tokens = parse_expression(tokens)
+            args.append(arg)
+            while tokens[0]["tag"] == ",":
+                arg, tokens = parse_expression(tokens[1:])
+                args.append(arg)
+        assert tokens[0]["tag"] == ")"
+        return {"tag": "call", "name": func_name, "args": args}, tokens[1:]
+
+    # NON-FUNCTION CALL CASES
     if token["tag"] == "number":
-        return {
-            "tag":"number",
-            "value":token['value']
-        }, tokens[1:]
+        return {"tag":"number", "value":token['value']}, tokens[1:]
     if token["tag"] == "identifier":
-        return {
-            "tag":"identifier",
-            "value":token['value']
-        }, tokens[1:]
+        return {"tag":"identifier", "value":token['value']}, tokens[1:]
     if token["tag"] == "(":
         ast, tokens = parse_expression(tokens[1:])
         assert tokens[0]["tag"] == ")"
@@ -89,6 +100,12 @@ def test_parse_factor():
     assert ast == {'tag': 'negate', 'value': {'tag': 'identifier', 'value': 'x'}}
     ast, _ = parse_factor(tokenize("-(z/5)"))
     assert ast == {'tag': 'negate', 'value': {'tag': '/', 'left': {'tag': 'identifier', 'value': 'z'}, 'right': {'tag': 'number', 'value': 5}}}
+    ast, _ = parse_factor(tokenize("pow(2, 3)"))
+    assert ast == {'tag': 'call', 'name': 'pow', 'args': [{'tag': 'number', 'value': 2}, {'tag': 'number', 'value': 3}]}
+    ast, _ = parse_factor(tokenize("sqrt(16)"))
+    assert ast == {'tag': 'call', 'name': 'sqrt', 'args': [{'tag': 'number', 'value': 16}]}
+    ast, _ = parse_factor(tokenize("floor(3.14159)"))
+    assert ast == {'tag': 'call', 'name': 'floor', 'args': [{'tag': 'number', 'value': 3.14159}]}
 
 def parse_term(tokens):
     """
@@ -449,6 +466,36 @@ def test_parse_while_statement():
     assert ast == {'tag': "while", 
                    'condition': {'tag': 'number', 'value': 1}, 
                    'do': {'tag': 'block', 'statements': [{'tag': 'print', 'value': {'tag': 'number', 'value': 2}}]}}
+    
+def parse_do_while_statement(tokens):
+    """
+    do_while_statement = "do" statement_block "while" "(" expression ")" ;
+    """
+    assert tokens[0]["tag"] == "do"
+    tokens = tokens[1:]
+    body, tokens = parse_statement_block(tokens)
+    assert tokens[0]["tag"] == "while"
+    tokens = tokens[1:]
+    assert tokens[0]["tag"] == "("
+    tokens = tokens[1:]
+    condition, tokens = parse_expression(tokens)
+    assert tokens[0]["tag"] == ")"
+    tokens = tokens[1:]
+    return {
+        "tag": "do_while",
+        "body": body,
+        "condition": condition
+    }, tokens
+
+def test_parse_do_while_statement():
+    """
+    do_while_statement = "do" statement_block "while" "(" expression ")" ;
+    """
+    print("Testing parse do while statement...")
+    ast, _ = parse_do_while_statement(tokenize("do{x = x + 1}while(x < 3)"))
+    assert ast == {'tag': 'do_while', 
+                   'body': {'tag': 'block', 'statements': [{'tag': 'assign', 'target': {'tag': 'identifier', 'value': 'x'}, 'value': {'tag': '+', 'left': {'tag': 'identifier', 'value': 'x'}, 'right': {'tag': 'number', 'value': 1}}}]},
+                   'condition': {'tag': '<', 'left': {'tag': 'identifier', 'value': 'x'}, 'right': {'tag': 'number', 'value': 3}}}
 
 def parse_assignment_statement(tokens):
     """
@@ -485,12 +532,10 @@ def parse_statement(tokens):
         return parse_if_statement(tokens)
     if tag == "while":
         return parse_while_statement(tokens)
+    if tag == "do":
+        return parse_do_while_statement(tokens)
     if tag == "sopatz":
         return parse_sopatz_statement(tokens)
-    # if tag == "function":
-    #     return parse_function_statement(tokens)
-    # if tag == "return":
-    #     return parse_return_statement(tokens)
     if tag == "print":
         return parse_print_statement(tokens)
     return parse_assignment_statement(tokens)
@@ -499,7 +544,6 @@ def parse_sopatz_statement(tokens):
     assert tokens[0]["tag"] == "sopatz"
     tokens = tokens[1:] #consumue "sopatz" token
     return { "tag": "sopatz" }, tokens
-
 
 def test_parse_statement():
     """
@@ -511,31 +555,21 @@ def test_parse_statement():
     ast, _ = parse_statement(tokenize("{print 1}"))
     assert ast == {'tag': 'block', 'statements': [{'tag': 'print', 'value': {'tag': 'number', 'value': 1}}]}
 
-    # # if statement
-    # assert (
-    #     parse_statement(tokenize("if(1){print 1}"))[0]
-    #     == parse_if_statement(tokenize("if(1){print 1}"))[0]
-    # )
-    # # # while statement
-    # assert (
-    #     parse_statement(tokenize("while(1){print 1}"))[0]
-    #     == parse_while_statement(tokenize("while(1){print 1}"))[0]
-    # )
-    # # return statement
-    # assert (
-    #     parse_statement(tokenize("return 22"))[0]
-    #     == parse_return_statement(tokenize("return 22"))[0]
-    # )
+    # if statement
+    assert (
+        parse_statement(tokenize("if(1){print 1}"))[0]
+        == parse_if_statement(tokenize("if(1){print 1}"))[0]
+    )
+    # # while statement
+    assert (
+        parse_statement(tokenize("while(1){print 1}"))[0]
+        == parse_while_statement(tokenize("while(1){print 1}"))[0]
+    )
     # print statement
     assert (
         parse_statement(tokenize("print 1"))[0]
         == parse_print_statement(tokenize("print 1"))[0]
     )
-    # # function_statement (syntactic sugar)
-    # assert (
-    #     parse_statement(tokenize("function x(y){2}"))[0]
-    #     == parse_function_statement(tokenize("function x(y){2}"))[0]
-    # )
     # assignment statement
     assert (
         parse_statement(tokenize("x=3"))[0]
@@ -596,6 +630,7 @@ if __name__ == "__main__":
         test_parse_print_statement,
         test_parse_if_statement,
         test_parse_while_statement,
+        test_parse_do_while_statement,
         test_parse_assignment_statement,
         test_parse_statement,
         test_parse_program,

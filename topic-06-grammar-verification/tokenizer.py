@@ -8,6 +8,7 @@ patterns = [
     [r"if", "if"],
     [r"else", "else"],
     [r"while", "while"],
+    [r"do", "do"],
     [r"continue", "continue"],
     [r"break", "break"],
     [r"return", "return"],
@@ -37,6 +38,7 @@ patterns = [
     [r"\[", "["],
     [r"\]", "]"],
     [r"\.", "."],
+    [r",", ","],
     [r"\s+","whitespace"],
     [r".","error"]
 ]

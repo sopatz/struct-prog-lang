@@ -22,6 +22,72 @@ def evaluate(ast, environment={}): #environment is optional
         print(s)
         printed_string = s
         return None #statement does not return a value, an expression does
+    if ast["tag"] == "call":
+        func_name = ast["name"]
+        args = [evaluate(arg, environment) for arg in ast["args"]]
+        if func_name == "pow":
+            assert len(args) == 2, "pow() takes exactly two arguments"
+            return args[0] ** args[1]
+        if func_name == "sqrt": #square root
+            assert len(args) == 1, "sqrt() takes exactly one argument"
+            result = args[0] ** 0.5
+            # Round if close to an integer
+            if abs(result - round(result)) < 1e-9:
+                return round(result)
+            return result
+        if func_name == "cbrt": #cube root
+            assert len(args) == 1, "cbrt() takes exactly one argument"
+            result = args[0] ** (1/3)
+            # Correct cube root of negative numbers
+            if args[0] < 0:
+                result = -((-args[0]) ** (1/3))
+            # Round if very close to an integer
+            if abs(result - round(result)) < 1e-9:
+                return round(result)
+        if func_name == "root": #any root
+            assert len(args) == 2, "root() takes exactly two arguments"
+            assert args[1] != 0, "root() with n = 0 is undefined"
+            # Handle negative roots (e.g., cube root of -8 = -2)
+            if args[0] < 0 and int(args[1]) % 2 == 1:
+                result = -((-args[0]) ** (1 / args[1]))
+            else:
+                result = args[0] ** (1 / args[1])
+            # Round if close to an integer
+            if abs(result - round(result)) < 1e-9:
+                return round(result)
+            return result
+        if func_name == "ceil":
+            assert len(args) == 1, "ceil() takes exactly one argument"
+            x = args[0]
+            return int(x) if x == int(x) else (int(x) + 1 if x > 0 else int(x))
+        if func_name == "floor":
+            assert len(args) == 1, "floor() takes exactly one argument"
+            x = args[0]
+            return int(x) if x >= 0 or x == int(x) else int(x) - 1
+        if func_name == "factorial":
+            assert len(args) == 1, "factorial() takes exactly two arguments"
+            if args[0] < 0:
+                return "Factorial is not defined for negative numbers"
+            elif args[0] == 0:
+                return 1
+            else:
+                result = 1
+                for i in range(1, args[0] + 1):
+                    result *= i
+                return result
+        if func_name == "gcf": #greatest common factor (GCF)
+            result = args[0]
+            for x in args[1:]:
+                if result < x:
+                    temp = result
+                    result = x
+                    x = temp
+                while x != 0:
+                    temp = x
+                    x = result % x
+                    result = temp
+            return result
+        raise Exception(f"Unknown function '{func_name}'")
     if ast["tag"] == "if":
         condition_value = evaluate(ast["condition"], environment)
         if condition_value:
@@ -33,6 +99,12 @@ def evaluate(ast, environment={}): #environment is optional
     if ast["tag"] == "while":
         while evaluate(ast["condition"], environment):
             evaluate(ast["do"], environment) #evaluate then statement if condition is true
+        return None
+    if ast["tag"] == "do_while":
+        while True:
+            evaluate(ast["body"], environment)
+            if not evaluate(ast["condition"], environment):
+                break
         return None
     if ast["tag"] == "sopatz":
         environment["_kentid_"] = "sopatz@kent.edu" #insert and set environment variable
@@ -211,6 +283,27 @@ def test_while_statement():
     assert env["x"] == 6
     assert env["y"] == 7
 
+def test_do_while_loop():
+    print("Testing do-while loop...")
+    env = {"x": 0}
+    eval("do{x = x + 1}while(x < 3)", env)
+    assert env["x"] == 3
+
+def test_math_functions():
+    print("Testing math functions...")
+    assert eval("pow(2, 3)") == 8
+    assert eval("sqrt(9)") == 3
+    assert eval("cbrt(64)") == 4
+    assert eval("cbrt(-64)") == -4
+    assert eval("root(625, 4)") == 5
+    assert eval("root(-32, 5)") == -2
+    assert eval("ceil(3.2)") == 4
+    assert eval("floor(3.9)") == 3
+    assert eval("ceil(-3.2)") == -3
+    assert eval("floor(-3.9)") == -4
+    assert eval("factorial(5)") == 120
+    assert eval("gcf(24, 12, 18)") == 6
+
 if __name__ == "__main__":
     test_evaluate_number()
     test_evaluate_add()
@@ -223,4 +316,6 @@ if __name__ == "__main__":
     test_evaluate_assignment()
     test_if_statement()
     test_while_statement()
+    test_do_while_loop()
+    test_math_functions()
     print("Done testing evaluator.")
